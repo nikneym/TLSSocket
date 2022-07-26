@@ -59,21 +59,8 @@ function TLSSocket.new()
   return setmetatable({
     handle = handle,
     readBuffer = buffer.new(8192),
-    isBlocking = true,
     context = tls.newcontext(TLSSocket.cfg, read, write, handle),
   }, TLSSocket)
-end
-
-function TLSSocket:setBlocking(state)
-  assert(type(state) == "boolean")
-
-  if state == false then
-    self.isBlocking = false
-    return self.handle:settimeout(0)
-  end
-
-  self.isBlocking = true
-  return self.handle:settimeout()
 end
 
 function TLSSocket:__tostring()
