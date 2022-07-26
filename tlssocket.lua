@@ -33,17 +33,17 @@ local function read(h, n)
     return data or part
   end
 
-  return ""
+  return "", err
 end
 
 local function write(h, s)
-  local try_send, err = h:send(s)
-  if try_send ~= nil and err == nil then
-    return try_send
+  local bytes, err = h:send(s)
+  if bytes ~= nil and err == nil then
+    return bytes
   end
 
-  if not try_send and err == "timeout" then
-    return 0
+  if not bytes or bytes < #s then
+    return 0, err
   end
 end
 
@@ -53,13 +53,12 @@ local TLSSocket = {
 }
 TLSSocket.__index = TLSSocket
 
-function TLSSocket.tcp()
+function TLSSocket.new()
   local handle = socket.tcp()
-  local readBuffer = buffer.new(8192)
 
   return setmetatable({
     handle = handle,
-    readBuffer = readBuffer,
+    readBuffer = buffer.new(8192),
     isBlocking = true,
     context = tls.newcontext(TLSSocket.cfg, read, write, handle),
   }, TLSSocket)
