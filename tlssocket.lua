@@ -112,10 +112,8 @@ function TLSSocket:send(str)
 end
 
 local function read_by_length(self, length)
-  local bufferLen = #self.readBuffer
-
   -- got enough bytes in the buffer
-  if bufferLen >= length then
+  if #self.readBuffer >= length then
     return self.readBuffer:get(length), nil
   end
 
@@ -136,6 +134,112 @@ local function read_by_length(self, length)
   return self.readBuffer:get(length), nil
 end
 
+local function read_line_zero_buffer(self)
+  local msg, err
+  repeat
+    msg, err = self.context:read(8192)
+    if co_is_yieldable() then
+      co_yield()
+    end
+  until msg
+
+  local msgLen = #msg
+
+  -- temporary buffer for searching line
+  local tempBuffer = buffer.new(msgLen)
+  tempBuffer:set(msg)
+
+  local ptr = tempBuffer:ref()
+
+  local line
+  for i = 0, msgLen do
+    -- found a line feed '\n'
+    if ptr[i] == 10 then
+      if ptr[i - 1] == 13 then -- '\r'
+        line = tempBuffer:get(i - 1)
+        tempBuffer:skip(2)
+        break
+      end
+
+      line = tempBuffer:get(i)
+      tempBuffer:skip(1)
+      break
+    end
+  end
+
+  -- put the rest back to buffer
+  self.readBuffer:put(tempBuffer)
+  tempBuffer:free()
+
+  if line then
+    return line, nil
+  end
+
+  return nil, "line not found"
+end
+
+local function read_line_filled_buffer(self)
+  local ptr = self.readBuffer:ref()
+
+  local line
+  for i = 0, #self.readBuffer do
+    if ptr[i] == 10 then
+      if ptr[i - 1] == 13 then
+        line = self.readBuffer:get(i - 1)
+        self.readBuffer:skip(2)
+        break
+      end
+
+      line = self.readBuffer:get(i)
+      self.readBuffer:skip(1)
+      break
+    end
+  end
+
+  if line then
+    return line, nil
+  end
+
+  -- TODO: optimize and cleanup
+  local msg, err
+  repeat
+    msg, err = self.context:read(8192)
+    if co_is_yieldable() then
+      co_yield()
+    end
+  until msg
+
+  if msg then
+    self.readBuffer:put(msg)
+  end
+
+  return nil, "failed to read line"
+end
+
+local function read_by_line(self)
+  local bufferLen = #self.readBuffer
+
+  -- got bytes in the buffer
+  if bufferLen > 0 then
+    local line, err = read_line_filled_buffer(self)
+    if err then
+      return read_by_line(self)
+    end
+
+    return line, nil
+  end
+
+  -- no bytes in the buffer, let's read some
+  if bufferLen == 0 then
+    local line, err = read_line_zero_buffer(self)
+    if err then
+      return read_by_line(self)
+    end
+
+    return line, nil
+  end
+end
+
 function TLSSocket:receive(pattern)
   pattern = pattern or "*l"
 
@@ -143,8 +247,9 @@ function TLSSocket:receive(pattern)
     return read_by_length(self, pattern)
   end
 
+  -- work in progress
   if pattern == "*l" then
-    error "not implemented yet"
+    return read_by_line(self)
   end
 end
 
