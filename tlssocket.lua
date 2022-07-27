@@ -98,16 +98,17 @@ function TLSSocket:connect(host, port)
 end
 
 function TLSSocket:send(str)
-  local len = #str
-
-  repeat
-    local bytesWritten, err = self.context:write(str)
-    if co_is_yieldable() then
+  if co_is_yieldable() then
+    local len = #str
+    repeat
+      local bytesWritten, err = self.context:write(str)
       co_yield()
-    end
-  until bytesWritten == len
+    until bytesWritten == len
 
-  return len
+    return len, nil
+  end
+
+  return self.context:write(str)
 end
 
 local function socket_read(self, length)
