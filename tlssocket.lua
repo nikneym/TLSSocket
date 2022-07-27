@@ -111,7 +111,7 @@ function TLSSocket:send(str)
   return self.context:write(str)
 end
 
-local function socket_read(self, length)
+local function read_by_length(self, length)
   local bufferLen = #self.readBuffer
 
   -- got enough bytes in the buffer
@@ -120,111 +120,32 @@ local function socket_read(self, length)
   end
 
   -- not enough bytes, receive 'till get the full
-  local msg, err = self.context:read(length - bufferLen)
-  if msg then
-    self.readBuffer:put(msg)
-
-    if #self.readBuffer == length then
-      return self.readBuffer:get(length), nil
-    end
-  end
-
-  return nil, "timeout"
-end
-
--- TODO: refactor as a coroutine(?)
-local function socket_read_line(self)
-  local bufferLen = #self.readBuffer
-
-  if bufferLen == 0 then
-    local msg, err = self.context:read(8192)
-
-    -- got message, put it in a temporary buffer
-    if msg then
-      local len = #msg
-
-      local tempBuffer = buffer.new(len)
-      tempBuffer:set(msg)
-      local ptr = tempBuffer:ref()
-
-      -- search if line feed exists
-      local line
-      for i = 0, len do
-        if ptr[i] == 10 then
-          line = tempBuffer:get(i)
-          tempBuffer:skip(1)
-          break
-        end
-
-        -- TODO: NULL safety for `ptr[i + 1]`
-        if ptr[i] == 13 and ptr[i + 1] == 10 then
-          line = tempBuffer:get(i)
-          tempBuffer:skip(2)
-          break
-        end
-      end
-
-      -- put the rest back to the big buffer
-      self.readBuffer:put(tempBuffer)
-
-      -- found line feed
-      if line then
-        return line, nil
-      end
-    end
-
-    return nil, "timeout"
-  end
-
-  -- already have some bytes in the buffer
-  if bufferLen > 0 then
-    local ptr = self.readBuffer:ref()
-
-    local line
-    for i = 0, bufferLen do
-      if ptr[i] == 10 then
-        line = self.readBuffer:get(i)
-        self.readBuffer:skip(1)
-        break
-      end
-
-      -- TODO: NULL safety for `ptr[i + 1]`
-      if ptr[i] == 13 and ptr[i + 1] == 10 then
-        line = self.readBuffer:get(i)
-        self.readBuffer:skip(2)
-        break
-      end
-    end
-
-    -- found line feed
-    if line then
-      return line, nil
-    end
-
-    local msg, err = self.context:read(8192)
+  local receivedLength = 0
+  while length > receivedLength do
+    local msg, err = self.context:read(length - receivedLength)
     if msg then
       self.readBuffer:put(msg)
+      receivedLength = receivedLength + #msg
     end
 
-    return nil, "timeout"
+    if co_is_yieldable() then
+      co_yield()
+    end
   end
 
-  error "unreachable"
+  return self.readBuffer:get(length), nil
 end
 
--- TODO: Support '*a' (read all) pattern
 function TLSSocket:receive(pattern)
   pattern = pattern or "*l"
 
   if type(pattern) == "number" then
-    return socket_read(self, pattern)
+    return read_by_length(self, pattern)
   end
 
   if pattern == "*l" then
-    return socket_read_line(self)
+    error "not implemented yet"
   end
-
-  error "unreachable"
 end
 
 return TLSSocket
