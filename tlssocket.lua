@@ -26,6 +26,8 @@ local socket = require "socket"
 local buffer = require "string.buffer"
 local tls = require "mbedtls.ssl"
 local ffi = require "ffi"
+local co_is_yieldable = coroutine.isyieldable
+local co_yield = coroutine.yield
 
 local function read(h, n)
   local data, err, part = h:receive(n)
@@ -75,16 +77,37 @@ end
 
 -- FIX: use picodns for non-blocking connect call
 function TLSSocket:connect(host, port)
-  return self.handle:connect(host, port or 443)
+  -- if called in a coroutine, make this socket non-blocking
+  if co_is_yieldable() then
+    if self.handle:gettimeout() ~= 0 then
+      self.handle:settimeout(0)
+    end
+  end
+
+  -- for host name verification
+  self.context:sethostname(host)
+
+  repeat
+    local ok, err = self.handle:connect(host, port or 443)
+    if co_is_yieldable() then
+      co_yield()
+    end
+  until ok == 1
+
+  return true, nil
 end
 
 function TLSSocket:send(str)
-  local msg, err = self.context:write(str)
-  if msg then
-    return msg, nil
-  end
+  local len = #str
 
-  return nil, "timeout"
+  repeat
+    local bytesWritten, err = self.context:write(str)
+    if co_is_yieldable() then
+      co_yield()
+    end
+  until bytesWritten == len
+
+  return len
 end
 
 local function socket_read(self, length)
