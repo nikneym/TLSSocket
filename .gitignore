@@ -1,4 +1,5 @@
 .vscode/
+picodns/
 main.lua
 test.lua
-picodns/
+picodns.lua
