@@ -77,15 +77,15 @@ end
 
 -- FIX: use picodns for non-blocking connect call
 function TLSSocket:connect(host, port)
+  -- for host name verification
+  self.context:sethostname(host)
+
   -- if called in a coroutine, make this socket non-blocking
   if co_is_yieldable() then
     if self.handle:gettimeout() ~= 0 then
       self.handle:settimeout(0)
     end
   end
-
-  -- for host name verification
-  self.context:sethostname(host)
 
   repeat
     local ok, err = self.handle:connect(host, port or 443)
@@ -118,20 +118,19 @@ local function read_by_length(self, length)
   end
 
   -- not enough bytes, receive 'till get the full
-  local receivedLength = 0
-  while length > receivedLength do
-    local msg, err = self.context:read(length - receivedLength)
+  local total = length
+  repeat
+    local msg, err = self.context:read(length - #self.readBuffer)
     if msg then
       self.readBuffer:put(msg)
-      receivedLength = receivedLength + #msg
     end
 
     if co_is_yieldable() then
       co_yield()
     end
-  end
+  until #self.readBuffer >= length
 
-  return self.readBuffer:get(length), nil
+  return self.readBuffer:get(total), nil
 end
 
 local function read_line_zero_buffer(self)
@@ -208,10 +207,7 @@ local function read_line_filled_buffer(self)
       co_yield()
     end
   until msg
-
-  if msg then
-    self.readBuffer:put(msg)
-  end
+  self.readBuffer:put(msg)
 
   return nil, "failed to read line"
 end
