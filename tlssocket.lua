@@ -25,7 +25,8 @@ SOFTWARE.
 local socket = require "socket"
 local buffer = require "string.buffer"
 local tls = require "mbedtls.ssl"
-local ffi = require "ffi"
+local picodnsOk, picodns = pcall(require, "picodns")
+
 local co_is_yieldable = coroutine.isyieldable
 local co_yield = coroutine.yield
 
@@ -55,6 +56,11 @@ local TLSSocket = {
 }
 TLSSocket.__index = TLSSocket
 
+-- create a picodns resolver if exists
+if picodnsOk then
+  TLSSocket.resolver = picodns.newResolver()
+end
+
 function TLSSocket.new()
   local handle = socket.tcp()
 
@@ -75,7 +81,6 @@ function TLSSocket:close()
   self.handle:close()
 end
 
--- FIX: use picodns for non-blocking connect call
 function TLSSocket:connect(host, port)
   -- for host name verification
   self.context:sethostname(host)
@@ -85,6 +90,16 @@ function TLSSocket:connect(host, port)
     if self.handle:gettimeout() ~= 0 then
       self.handle:settimeout(0)
     end
+  end
+
+  -- resolve host address with picodns if exists
+  if picodnsOk then
+    local answers, err = TLSSocket.resolver:query(host)
+    if err then
+      return false, err
+    end
+
+    host = answers[1].content
   end
 
   repeat
