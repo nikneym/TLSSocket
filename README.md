@@ -50,9 +50,9 @@ sock:close()
 
 Dependencies
 ===========
-* [https://github.com/lunarmodules/luasocket](LuaSocket)
-* [https://github.com/neoxic/lua-mbedtls](lua-mbedtls)
-* [https://github.com/nikneym/picodns](picodns) (optional)
+* [LuaSocket](https://github.com/lunarmodules/luasocket)
+* [lua-mbedtls](https://github.com/neoxic/lua-mbedtls)
+* [picodns](https://github.com/nikneym/picodns) (optional)
 * String Buffer API (already included in LuaJIT)
 
 Tests
