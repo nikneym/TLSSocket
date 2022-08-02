@@ -33,15 +33,25 @@ local gettime = socket.gettime
 
 local function read(h, n)
   local data, err, part = h:receive(n)
+
+  if err == "closed" then
+    return error "closed"
+  end
+
   if data or part then
     return data or part
   end
 
-  return "", err
+  return ""
 end
 
 local function write(h, s)
   local bytes, err = h:send(s)
+
+  if err == "closed" then
+    return error "closed"
+  end
+
   if bytes ~= nil and err == nil then
     return bytes
   end
@@ -126,6 +136,9 @@ function TLSSocket:send(str)
     local len = #str
     repeat
       local bytesWritten, err = self.context:write(str)
+      if err == "closed" then
+        return nil, "connection closed"
+      end
       co_yield()
     until bytesWritten == len
 
@@ -145,6 +158,10 @@ local function read_by_length(self, length)
   local total = length
   repeat
     local msg, err = self.context:read(length - #self.readBuffer)
+    if err == "closed" then
+      return nil, "connection closed"
+    end
+
     if msg then
       self.readBuffer:put(msg)
     end
@@ -161,6 +178,10 @@ local function read_line_zero_buffer(self)
   local msg, err
   repeat
     msg, err = self.context:read(8192)
+    if err == "closed" then
+      return nil, "connection closed"
+    end
+
     if co_is_yieldable() then
       co_yield()
     end
@@ -227,6 +248,10 @@ local function read_line_filled_buffer(self)
   local msg, err
   repeat
     msg, err = self.context:read(8192)
+    if err == "closed" then
+      return nil, "connection closed"
+    end
+
     if co_is_yieldable() then
       co_yield()
     end
