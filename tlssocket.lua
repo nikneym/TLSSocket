@@ -29,6 +29,7 @@ local picodnsOk, picodns = pcall(require, "picodns")
 
 local co_is_yieldable = coroutine.isyieldable
 local co_yield = coroutine.yield
+local gettime = socket.gettime
 
 local function read(h, n)
   local data, err, part = h:receive(n)
@@ -67,6 +68,7 @@ function TLSSocket.new()
   return setmetatable({
     handle = handle,
     readBuffer = buffer.new(8192),
+    timeout = 3,
     context = tls.newcontext(TLSSocket.cfg, read, write, handle),
   }, TLSSocket)
 end
@@ -81,6 +83,7 @@ function TLSSocket:close()
   self.handle:close()
 end
 
+-- TODO: check if address is IPv4 or IPv6 or domain name
 function TLSSocket:connect(host, port)
   -- for host name verification
   self.context:sethostname(host)
@@ -95,15 +98,21 @@ function TLSSocket:connect(host, port)
   -- resolve host address with picodns if exists
   if picodnsOk then
     local answers, err = TLSSocket.resolver:query(host)
-    if err then
-      return false, err
+    if not answers then
+      return false, "no such domain"
     end
 
     host = answers[1].content
   end
 
+  local startTime = gettime()
   repeat
     local ok, err = self.handle:connect(host, port or 443)
+
+    if gettime() - startTime >= self.timeout then
+      return false, ("no answer after %d seconds"):format(self.timeout)
+    end
+
     if co_is_yieldable() then
       co_yield()
     end

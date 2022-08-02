@@ -5,6 +5,7 @@ TODO
 - [ ] Support `receive("*a")` variation of LuaSocket(?)
 - [ ] Add examples
 - [ ] Add docs
+- [ ] Add luadoc comments
 - [ ] Publish on luarocks.org
 
 Done ✓
