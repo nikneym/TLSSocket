@@ -52,7 +52,7 @@ local function write(h, s)
 end
 
 local TLSSocket = {
-  version = "1.0.0",
+  version = "1.0.1",
   cfg = tls.newconfig "tls-client"
 }
 TLSSocket.__index = TLSSocket
