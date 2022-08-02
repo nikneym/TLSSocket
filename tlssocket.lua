@@ -92,6 +92,7 @@ function TLSSocket:__tostring()
   return tostring(self.handle)
 end
 
+--- Closes the socket and releases the TLS context and bytes buffer.
 function TLSSocket:close()
   self.readBuffer:free()
   self.context:reset()
