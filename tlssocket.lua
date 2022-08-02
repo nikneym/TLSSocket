@@ -61,6 +61,10 @@ local function write(h, s)
   end
 end
 
+--- @class TLSSocket
+--- @field handle userdata
+--- @field readBuffer userdata
+--- @field context userdata
 local TLSSocket = {
   version = "1.0.1",
   cfg = tls.newconfig "tls-client"
@@ -72,6 +76,8 @@ if picodnsOk then
   TLSSocket.resolver = picodns.newResolver()
 end
 
+--- Creates a new `TLSSocket` object.
+--- @return TLSSocket
 function TLSSocket.new()
   local handle = socket.tcp()
 
@@ -100,7 +106,14 @@ local function is_ipv6(host)
   return host:find("^[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?$")
 end
 
+--- Connects the socket to the given host and port.
+--- @param host string
+--- @param port? number 443 is default
+--- @return boolean ok
+--- @return string|nil err
 function TLSSocket:connect(host, port)
+  assert(type(host) == "string", "host name is not specified")
+
   -- for host name verification
   self.context:sethostname(host)
 
@@ -143,7 +156,13 @@ function TLSSocket:connect(host, port)
   return true, nil
 end
 
+--- Sends a message through a socket.
+--- @param str any
+--- @return number|nil bytesWritten
+--- @return string|nil err
 function TLSSocket:send(str)
+  assert(str, "a buffer must be provided to send")
+
   if co_is_yieldable() then
     local len = #str
     repeat
@@ -297,6 +316,10 @@ local function read_by_line(self)
   end
 end
 
+--- Receives `x` bytes or a line `*l` or the full buffer `*a` from the socket.
+--- @param pattern? number|string Receives a line by default
+--- @return string|nil message
+--- @return string|nil err
 function TLSSocket:receive(pattern)
   pattern = pattern or "*l"
 
@@ -304,7 +327,6 @@ function TLSSocket:receive(pattern)
     return read_by_length(self, pattern)
   end
 
-  -- work in progress
   if pattern == "*l" then
     return read_by_line(self)
   end
