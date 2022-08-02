@@ -78,7 +78,6 @@ function TLSSocket.new()
   return setmetatable({
     handle = handle,
     readBuffer = buffer.new(8192),
-    timeout = 3,
     context = tls.newcontext(TLSSocket.cfg, read, write, handle),
   }, TLSSocket)
 end
@@ -119,8 +118,8 @@ function TLSSocket:connect(host, port)
   repeat
     local ok, err = self.handle:connect(host, port or 443)
 
-    if gettime() - startTime >= self.timeout then
-      return false, ("no answer after %d seconds"):format(self.timeout)
+    if gettime() - startTime >= 3 then
+      return false, "connection failed"
     end
 
     if co_is_yieldable() then
