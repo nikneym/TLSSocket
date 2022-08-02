@@ -316,6 +316,22 @@ local function read_by_line(self)
   end
 end
 
+local function read_all(self)
+  -- reads 'till close err is received
+  repeat
+    local msg, err = self.context:read(8192)
+    if msg then
+      self.readBuffer:put(msg)
+    end
+
+    if co_is_yieldable() then
+      co_yield()
+    end
+  until err == "closed"
+
+  return self.readBuffer:tostring(), nil
+end
+
 --- Receives `x` bytes or a line `*l` or the full buffer `*a` from the socket.
 --- @param pattern? number|string Receives a line by default
 --- @return string|nil message
@@ -329,6 +345,11 @@ function TLSSocket:receive(pattern)
 
   if pattern == "*l" then
     return read_by_line(self)
+  end
+
+  -- work in progress
+  if pattern == "*a" then
+    return read_all(self)
   end
 end
 
