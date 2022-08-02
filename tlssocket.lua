@@ -92,7 +92,14 @@ function TLSSocket:close()
   self.handle:close()
 end
 
--- TODO: check if address is IPv4 or IPv6 or domain name
+local function is_ipv4(host)
+  return host:find("^%d+%.%d+%.%d+%.%d+$")
+end
+
+local function is_ipv6(host)
+  return host:find("^[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?[%a%d]+%:?$")
+end
+
 function TLSSocket:connect(host, port)
   -- for host name verification
   self.context:sethostname(host)
@@ -104,14 +111,20 @@ function TLSSocket:connect(host, port)
     end
   end
 
-  -- resolve host address with picodns if exists
-  if picodnsOk then
-    local answers, err = TLSSocket.resolver:query(host)
-    if not answers then
-      return false, "no such domain"
-    end
+  local hostCheck = host == "localhost"
+                    or is_ipv4(host)
+                    or is_ipv6(host)
 
-    host = answers[1].content
+  if not hostCheck then
+    -- resolve host address with picodns if exists
+    if picodnsOk then
+      local answers, err = TLSSocket.resolver:query(host)
+      if not answers then
+        return false, "no such domain"
+      end
+
+      host = answers[1].content
+    end
   end
 
   local startTime = gettime()
