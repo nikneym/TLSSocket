@@ -1,0 +1,40 @@
+name: main
+
+on:
+  push:
+    paths:
+      - "**.lua"
+  pull_request:
+    paths:
+      - "**.lua"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup LuaJIT
+        uses: leafo/gh-actions-lua@v9
+        with:
+            luaVersion: "luajit-2.1.0-beta3"
+
+      - name: Setup MbedTLS
+        run: sudo apt install -y libmbedtls-dev
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install luasocket
+        run: luarocks install luasocket
+
+      - name: Install lua-mbedtls
+        run: luarocks install lua-mbedtls
+
+      - name: Install busted
+        run: luarocks install busted
+
+      - name: Test TLSSocket
+        run: busted .
