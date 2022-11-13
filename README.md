@@ -1,4 +1,4 @@
-tlssocket.lua
+TLSSocket
 ===========
 Lightweight, non-blocking SSL/TLS wrapper for LuaSocket
 
