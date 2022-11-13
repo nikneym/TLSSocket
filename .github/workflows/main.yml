@@ -17,9 +17,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup LuaJIT
-        uses: leafo/gh-actions-lua@v9
-        with:
-            luaVersion: "luajit"
+        run: sudo apt install -y luajit
 
       - name: Setup MbedTLS
         run: sudo apt install -y libmbedtls-dev
