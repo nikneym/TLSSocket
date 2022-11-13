@@ -1,4 +1,4 @@
-local TLSSocket = require "tlssocket"
+local TLSSocket = require "init"
 
 describe("I/O operations", function()
   it("can be done in blocking mode", function()

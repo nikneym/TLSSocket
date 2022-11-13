@@ -1,4 +1,4 @@
-local TLSSocket = require "tlssocket"
+local TLSSocket = require "init"
 
 describe("HTTP requests", function()
   it("can be read by Content-Length", function()
