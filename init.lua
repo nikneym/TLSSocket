@@ -66,7 +66,7 @@ end
 --- @field readBuffer userdata
 --- @field context userdata
 local TLSSocket = {
-  version = "1.0.3",
+  version = "2.0.3",
   cfg = tls.newconfig "tls-client"
 }
 TLSSocket.__index = TLSSocket
