@@ -348,7 +348,6 @@ function TLSSocket:receive(pattern)
     return read_by_line(self)
   end
 
-  -- work in progress
   if pattern == "*a" then
     return read_all(self)
   end
