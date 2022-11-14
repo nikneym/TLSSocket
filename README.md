@@ -1,6 +1,6 @@
 TLSSocket
 ===========
-Lightweight, non-blocking SSL/TLS wrapper for LuaSocket
+Lightweight, non-blocking SSL/TLS wrapper for LuaSocket based on lua-mbedtls.
 
 Why this module exists?
 ===========
@@ -16,10 +16,30 @@ Features
 * Does buffered read in order to create less garbage
 * Has matching API with LuaSocket
 
+Installation
+===========
+Clone the repository in your project directory.
+```
+git clone git@github.com:nikneym/TLSSocket.git
+```
+[lua-mbedtls](https://github.com/neoxic/lua-mbedtls) and [LuaSocket](https://github.com/lunarmodules/luasocket) are the core dependencies.
+```
+luarocks install luasocket
+luarocks install lua-mbedtls
+```
+On LOVE:
+```lua
+local TLSSocket = require "TLSSocket"
+```
+On LuaJIT:
+```lua
+local TLSSocket = require "TLSSocket.init"
+```
+
 How-to
 ===========
 ```lua
-local TLSSocket = require "tlssocket"
+local TLSSocket = require "TLSSocket"
 
 -- create a new socket and connect to google.com:443
 local sock = TLSSocket.new()
