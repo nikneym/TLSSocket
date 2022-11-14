@@ -1,8 +1,6 @@
 TODO
 ===========
 - [ ] Optimize `read_line_filled_buffer`
-- [ ] Add examples
-- [ ] Add docs
 - [ ] Publish on luarocks.org
 
 Done ✓
